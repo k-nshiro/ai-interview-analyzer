@@ -24,35 +24,46 @@ if "interview_complete" not in st.session_state:
 # --- STAGE 1: START THE INTERVIEW ---
 if st.session_state.session_id is None:
     st.subheader("Configure Your Mock Interview")
-    role = st.text_input("Target Job Role", value="Python Backend Engineer")
-    experience = st.selectbox("Experience Level", ["Junior", "Intermediate", "Senior"])
-    tech_stack = st.text_input("Tech Stack (comma separated)", value="Python, FastAPI, PostgreSQL")
+    
+    # Updated to use placeholders instead of hardcoded values
+    role = st.text_input("Target Job Role", value="", placeholder="e.g., Python Backend Engineer")
+    
+    # Updated to default to "Select..."
+    experience = st.selectbox("Experience Level", ["Select...", "Intern", "Junior", "Mid-Level", "Senior", "Lead"])
+    
+    # Updated to use placeholders
+    tech_stack = st.text_input("Tech Stack (comma separated)", value="", placeholder="e.g., Python, FastAPI, PostgreSQL")
 
     if st.button("Start Interview", type="primary"):
-        # Format tech stack into a list
-        stack_list = [tech.strip() for tech in tech_stack.split(",") if tech.strip()]
-        
-        # Call backend to initialize the session
-        try:
-            response = httpx.post(
-                f"{BACKEND_URL}/interview/start",
-                json={"role": role, "experience_level": experience, "tech_stack": stack_list},
-                timeout=10.0
-            )
-            if response.status_code == 200:
-                data = response.json()
-                
-                # Use question_id as a fallback session identifier
-                st.session_state.session_id = data.get("session_id") or 1
-                
-                # Match your exact backend response keys
-                st.session_state.current_question_id = data.get("question_id")
-                st.session_state.current_question_text = data.get("text")
-                st.rerun()
-            else:
-                st.error("Failed to start session. Make sure your FastAPI backend is running!")
-        except Exception as e:
-            st.error(f"Error connecting to backend: {str(e)}")
+        # Validation check: Ensure all fields are filled properly
+        if not role.strip() or not tech_stack.strip() or experience == "Select...":
+            st.warning("⚠️ Please fill all the details before starting the interview!")
+        else:
+            # Format tech stack into a list
+            stack_list = [tech.strip() for tech in tech_stack.split(",") if tech.strip()]
+            
+            # Call backend to initialize the session
+            with st.spinner("Preparing your interview environment..."):
+                try:
+                    response = httpx.post(
+                        f"{BACKEND_URL}/interview/start",
+                        json={"role": role, "experience_level": experience, "tech_stack": stack_list},
+                        timeout=10.0
+                    )
+                    if response.status_code == 200:
+                        data = response.json()
+                        
+                        # Use question_id as a fallback session identifier
+                        st.session_state.session_id = data.get("session_id") or 1
+                        
+                        # Match your exact backend response keys
+                        st.session_state.current_question_id = data.get("question_id")
+                        st.session_state.current_question_text = data.get("text")
+                        st.rerun()
+                    else:
+                        st.error("Failed to start session. Make sure your FastAPI backend is running!")
+                except Exception as e:
+                    st.error(f"Error connecting to backend: {str(e)}")
 
 # --- STAGE 2: ACTIVE INTERVIEW CHAT ---
 elif not st.session_state.interview_complete:
