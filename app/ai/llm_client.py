@@ -4,14 +4,16 @@ from app.core.config import settings
 from app.schemas.evaluation import AnswerEvaluation, NextQuestionGen
 from app.ai.prompts.evaluator import EVALUATOR_SYSTEM_PROMPT
 from app.ai.prompts.questioner import QUESTIONER_SYSTEM_PROMPT
-from app.schemas.report import InterviewReport # New import
+from app.schemas.report import InterviewReport
 from app.ai.prompts.reporter import REPORTER_SYSTEM_PROMPT
+from groq import AsyncGroq
+import os
 
 # Initialize the async client
-# In production, we ensure the API key is loaded from the environment securely
-client = AsyncOpenAI(
-    api_key=settings.OPENAI_API_KEY,
-     base_url="https://api.groq.com/openai/v1") # pointing it to Groq's free servers
+# We only pass the API key; the Groq library handles the base_url automatically!
+client = AsyncGroq(
+    api_key=settings.GROQ_API_KEY
+)
 
 async def evaluate_candidate_answer(
     role: str, 
@@ -34,7 +36,7 @@ async def evaluate_candidate_answer(
     try:
         # 2. Call the LLM using JSON mode
         response = await client.chat.completions.create(
-            model="llama-3.3-70b-versatile", # Or gpt-3.5-turbo-1106 for cost savings
+            model="llama-3.3-70b-versatile",
             messages=[
                 {"role": "system", "content": system_message},
                 {"role": "user", "content": user_message}
